@@ -35,14 +35,28 @@ class Handler extends WebhookHandler
         $commitCollection = collect($commits[0]);
         $repositoryCollection = collect($repositoryData);
         $authorName = Arr::get($commitCollection->all(), 'author.name');
-        $changedFilesList = implode("\n", $commitCollection->get('modified'));
 
         $message[] = "✅ Новый коммит от пользователя:\n{$authorName}";
         $message[] = "📋 Имя проекта:\n{$repositoryCollection->get('name')}";
         $message[] = "🌿 Ветка:\n{$ref}";
         $message[] = "🔗 Ссылка на проект:\n{$repositoryCollection->get('html_url')}";
         $message[] = "🔗 Ссылка на коммит:\n{$commitCollection->get('url')}";
-        $message[] = "✏️ Затронутые файлы:\n{$changedFilesList}";
+
+        if ($commitCollection->get('modified')) {
+            $changedFilesList = implode("\n", $commitCollection->get('modified'));
+            $message[] = "✏️ Обновлённые файлы:\n{$changedFilesList}";
+        }
+
+        if ($commitCollection->get('added')) {
+            $addedFilesList = implode("\n", $commitCollection->get('added'));
+            $message[] = "➕ Созданные файлы:\n{$addedFilesList}";
+        }
+
+        if ($commitCollection->get('added')) {
+            $removedFilesList = implode("\n", $commitCollection->get('removed'));
+            $message[] = "➖ Удалённые файлы:\n{$removedFilesList}";
+        }
+
         $message[] = "💬 Сообщение:\n<blockquote>{$commitCollection->get('message')}</blockquote>";
 
         return implode("\n\n", $message);
