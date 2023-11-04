@@ -2,6 +2,9 @@
 
 namespace App\Telegraph;
 
+use App\Http\Controllers\LogController;
+use Carbon\Carbon;
+use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
@@ -12,31 +15,60 @@ use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
 {
-    public function sendMessage(Request $request): void
+    public function handleCommit(Request $request): void
     {
-        ['payload' => $data] = $request->all();
+        ['payload' => $dataAsJson] = $request->all();
 
-        $message = $this->createFormattedMessage(json_decode($data, true));
+        $message = $this->createFormattedCommitMessage(json_decode($dataAsJson, true));
+
+        $logController = new LogController();
+        $isLoggedSuccess = $logController->saveCommit(json_decode($dataAsJson, true));
+
+        if ($isLoggedSuccess) {
+            $message = $this->addLogAttentionToMessage($message);
+        }
 
         $chat = TelegraphChat::find(1);
         $chat->html($message)->keyboard(Keyboard::make()->buttons([
-            Button::make('Статистика')->action('action')->param('actionName', 'stats'),
+            Button::make('Статистика')->action('stats'),
         ]))->withoutPreview()->send();
     }
 
-    public function action(Request $request): void
+    private function addLogAttentionToMessage($message): string
     {
-        $actionName = $request->input('actionName');
-        $chat = TelegraphChat::find(1);
-        $chat->html("Название события: {$actionName}")->send();
+        $authorTgNickName = env('AUTHOR_S_TG_NICKNAME');
+        $message .= "\n\n❗ {$authorTgNickName}, проверь почему запись не сохранилась в БД ❗";
+
+        return $message;
     }
 
-    public function testButton()
+    public function stats(): void
     {
-        $this->reply('test button');
+        $dateTime = Carbon::now()->locale('ru');
+        Telegraph::message('За какой период хочешь получить статистику?')
+            ->keyboard(Keyboard::make()->buttons([
+                Button::make(
+                    'За сегодня (' . $dateTime->isoFormat('D MMMM, dddd') . ')')
+                    ->action('stats-by-period')->param('from', $dateTime->toDateString())
+                    ->param('to', $dateTime->toDateString()),
+                Button::make(
+                    'За неделю (С ' . Carbon::now()->locale('ru')->subDays(7)->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
+                    ->action('stats-by-period')
+                    ->param('from', Carbon::now()->locale('ru')->subDays(7)->toDateString())->param('to', $dateTime->toDateString()),
+                Button::make(
+                    'За месяц (С ' . Carbon::now()->locale('ru')->subMonths(1)->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
+                    ->action('stats-by-period')
+                    ->param('from', Carbon::now()->locale('ru')->subMonths(1)->toDateString())->param('to', $dateTime->toDateString()),
+                Button::make('Отмена')->action('reset'),
+            ]))->send();
     }
 
-    private function createFormattedMessage($requestData): string
+    public function reset(): void
+    {
+        TelegraphChat::find(1)->html('Понял')->send();
+    }
+
+    private function createFormattedCommitMessage($requestData): string
     {
         [
             'ref' => $ref,

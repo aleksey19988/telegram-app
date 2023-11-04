@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Controller;
 use App\Telegraph\Handler;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('send-message', [Handler::class, 'sendMessage'])->name('send-message');
-Route::post('action', [Handler::class, 'action'])->name('action');
-Route::get('test-button', [Handler::class, 'testButton'])->name('test-button');
+Route::post('handle-commit', [Handler::class, 'handleCommit'])->name('handle-commit');
+Route::post('stats', [Handler::class, 'stats'])->name('stats');
+Route::get('reset', [Controller::class, 'reset'])->name('reset');
