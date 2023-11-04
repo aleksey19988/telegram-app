@@ -20,13 +20,13 @@ class Handler extends WebhookHandler
 
         $chat = TelegraphChat::find(1);
         $chat->html($message)->keyboard(Keyboard::make()->buttons([
-            Button::make('Статистика')->action('action')->param('action', 'stats'),
+            Button::make('Статистика')->action('action')->param('actionName', 'stats'),
         ]))->withoutPreview()->send();
     }
 
     public function action(Request $request): void
     {
-        $actionName = $request->input('action');
+        $actionName = $request->input('actionName');
         $chat = TelegraphChat::find(1);
         $chat->html("Название события: {$actionName}")->send();
     }
