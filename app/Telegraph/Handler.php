@@ -57,13 +57,13 @@ class Handler extends WebhookHandler
             $message[] = "➖ Удалённые файлы:\n{$removedFilesList}";
         }
 
-        $message[] = "💬 Сообщение:\n<blockquote>{$commitCollection->get('message')}</blockquote>";
+        $message[] = "💬 Комментарий:\n<blockquote>{$commitCollection->get('message')}</blockquote>";
 
         return implode("\n\n", $message);
     }
 
     protected function handleUnknownCommand(Stringable $text): void
     {
-        $this->reply("Пока не знаю такую команду.");
+        $this->reply("Пока не знаю команду {$text->toString()}");
     }
 }
