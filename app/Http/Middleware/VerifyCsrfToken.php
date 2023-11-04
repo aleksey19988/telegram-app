@@ -14,5 +14,6 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         'handle-commit',
         'stats',
+        'stats-by-period',
     ];
 }

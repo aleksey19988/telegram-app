@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Controller;
 use App\Telegraph\Handler;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +14,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('handle-commit', [Handler::class, 'handleCommit'])->name('handle-commit');
-Route::post('stats', [Handler::class, 'stats'])->name('stats');
-Route::get('reset', [Controller::class, 'reset'])->name('reset');
+Route::controller(Handler::class)->group(function() {
+    Route::post('handle-commit', 'handleCommit')->name('handle-commit');
+    Route::get('stats-by-commits', 'statsByCommits')->name('stats-by-commits');
+    Route::post('stats-by-period', 'statsByPeriod')->name('stats-by-period');
+    Route::get('reset', 'reset')->name('reset');
+});
+
+

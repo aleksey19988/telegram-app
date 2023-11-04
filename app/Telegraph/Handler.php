@@ -18,89 +18,85 @@ class Handler extends WebhookHandler
     public function handleCommit(Request $request): void
     {
         ['payload' => $dataAsJson] = $request->all();
+        $commitDataAsArr = json_decode($dataAsJson, true);
 
-        $message = $this->createFormattedCommitMessage(json_decode($dataAsJson, true));
+        $message = $this->createFormattedCommitMessage($commitDataAsArr);
 
         $logController = new LogController();
-        $isLoggedSuccess = $logController->saveCommit(json_decode($dataAsJson, true));
+        $isLoggedSuccess = $logController->saveCommit($commitDataAsArr);
 
         if (!$isLoggedSuccess) {
             $message = $this->addLogAttentionToMessage($message);
         }
 
-        $chat = TelegraphChat::find(1);
-        $chat->html($message)->keyboard(Keyboard::make()->buttons([
-            Button::make('Статистика')->action('stats'),
-        ]))->withoutPreview()->send();
+        $chat = TelegraphChat::query()->find(1);
+        $keyboard = Keyboard::make()
+            ->row([
+                Button::make('Перейти к проекту')->url($this->getProjectUrl($commitDataAsArr)),
+                Button::make('Перейти к коммиту')->url($this->getCommitUrl($commitDataAsArr)),
+            ])
+            ->row([
+                Button::make('Статистика коммитов')->action('statsByCommits'),
+            ]);
+        $chat->html($message)->keyboard($keyboard)->send();
     }
 
     private function addLogAttentionToMessage($message): string
     {
         $authorTgNickName = env('AUTHOR_S_TG_NICKNAME');
-        $message .= "\n\n❗ {$authorTgNickName}, проверь почему запись не сохранилась в БД ❗";
+        $message .= "\n\n❗ $authorTgNickName, проверь почему запись не сохранилась в БД ❗";
 
         return $message;
     }
 
-    public function stats(): void
+    public function statsByCommits(): void
     {
         $dateTime = Carbon::now()->locale('ru');
         Telegraph::message('За какой период хочешь получить статистику?')
             ->keyboard(Keyboard::make()->buttons([
                 Button::make(
                     'За сегодня (' . $dateTime->isoFormat('D MMMM, dddd') . ')')
-                    ->action('stats-by-period')->param('from', $dateTime->toDateString())
+                    ->action('statsByPeriod')->param('from', $dateTime->toDateString())
                     ->param('to', $dateTime->toDateString()),
                 Button::make(
                     'За неделю (С ' . Carbon::now()->locale('ru')->subDays(7)->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
-                    ->action('stats-by-period')
+                    ->action('statsByPeriod')
                     ->param('from', Carbon::now()->locale('ru')->subDays(7)->toDateString())->param('to', $dateTime->toDateString()),
                 Button::make(
-                    'За месяц (С ' . Carbon::now()->locale('ru')->subMonths(1)->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
-                    ->action('stats-by-period')
-                    ->param('from', Carbon::now()->locale('ru')->subMonths(1)->toDateString())->param('to', $dateTime->toDateString()),
+                    'За месяц (С ' . Carbon::now()->locale('ru')->subMonths()->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
+                    ->action('statsByPeriod')
+                    ->param('from', Carbon::now()->locale('ru')->subMonths()->toDateString())->param('to', $dateTime->toDateString()),
                 Button::make('Отмена')->action('reset'),
             ]))->send();
     }
 
     public function reset(): void
     {
-        TelegraphChat::find(1)->html('Понял')->send();
+        TelegraphChat::find(1)->html('Отмена, понял')->send();
     }
 
-    private function createFormattedCommitMessage($requestData): string
+    public function statsByPeriod(Request $request): void
+    {
+        $from = $request->from;
+        $to = $request->to;
+        TelegraphChat::find(1)->html('Выбран период')->send();
+    }
+
+    private function createFormattedCommitMessage($data): string
     {
         [
             'ref' => $ref,
-            'repository' => $repositoryData,
+            'repository' => $repository,
             'commits' => $commits
-        ] = $requestData;
+        ] = $data;
         $message = [];
         $commitCollection = collect($commits[0]);
-        $repositoryCollection = collect($repositoryData);
+        $repositoryCollection = collect($repository);
         $authorName = Arr::get($commitCollection->all(), 'author.name');
 
-        $message[] = "✅ Новый коммит от пользователя:\n{$authorName}";
+        $message[] = "✅ Новый коммит от пользователя:\n$authorName";
         $message[] = "📋 Имя проекта:\n{$repositoryCollection->get('name')}";
-        $message[] = "🌿 Ветка:\n{$ref}";
-        $message[] = "🔗 Ссылка на проект:\n{$repositoryCollection->get('html_url')}";
-        $message[] = "🔗 Ссылка на коммит:\n{$commitCollection->get('url')}";
-
-        if ($commitCollection->get('modified')) {
-            $changedFilesList = implode("\n", $commitCollection->get('modified'));
-            $message[] = "✏️ Обновлённые файлы:\n{$changedFilesList}";
-        }
-
-        if ($commitCollection->get('added')) {
-            $addedFilesList = implode("\n", $commitCollection->get('added'));
-            $message[] = "➕ Созданные файлы:\n{$addedFilesList}";
-        }
-
-        if ($commitCollection->get('removed')) {
-            $removedFilesList = implode("\n", $commitCollection->get('removed'));
-            $message[] = "➖ Удалённые файлы:\n{$removedFilesList}";
-        }
-
+        $message[] = "🌿 Ветка:\n$ref";
         $message[] = "💬 Комментарий:\n<blockquote>{$commitCollection->get('message')}</blockquote>";
 
         return implode("\n\n", $message);
@@ -109,5 +105,19 @@ class Handler extends WebhookHandler
     protected function handleUnknownCommand(Stringable $text): void
     {
         $this->reply("Пока не знаю команду {$text->toString()}");
+    }
+
+    private function getProjectUrl($data): string
+    {
+        ['repository' => $repository] = $data;
+
+        return collect($repository)->get('html_url');
+    }
+
+    private function getCommitUrl($data): string
+    {
+        ['commits' => $commits] = $data;
+
+        return collect($commits[0])->get('url');
     }
 }

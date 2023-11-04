@@ -13,7 +13,6 @@ class Log extends Model
     protected $fillable = ['repository', 'commit'];
     public $timestamps = true;
 
-
     public function fillFields($data): void
     {
         ['repository' => $repositoryData, 'commits' => $commits] = $data;
