@@ -1,5 +1,6 @@
 <?php
 
+use App\Telegraph\Handler;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,4 +14,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('send-message', [\App\Telegraph\Handler::class, 'sendMessage']);
+Route::post('send-message', [Handler::class, 'sendMessage'])->name('send-message');
+Route::post('delete', [Handler::class, 'delete'])->name('delete');
+Route::get('test-button', [Handler::class, 'testButton'])->name('test-button');

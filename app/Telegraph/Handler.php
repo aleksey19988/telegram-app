@@ -2,14 +2,12 @@
 
 namespace App\Telegraph;
 
-use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
@@ -21,7 +19,24 @@ class Handler extends WebhookHandler
         $message = $this->createFormattedMessage(json_decode($data, true));
 
         $chat = TelegraphChat::find(1);
-        $chat->html($message)->withoutPreview()->send();
+        $chat->html($message)->keyboard(Keyboard::make()->buttons([
+            Button::make('Delete')->action('delete')->param('id', '42'),
+            Button::make('Статистика')->url('https://6711-188-233-12-42.ngrok-free.app/test-button'),
+        ]))->withoutPreview()->send();
+    }
+
+    public function delete(Request $request)
+    {
+        $id = $request->input('id');
+        file_put_contents('body.txt', "id: {$id}");
+        $chat = TelegraphChat::find(1);
+        $chat->html("")->send($id);
+//        $this->reply("delete button. id: {$id}");
+    }
+
+    public function testButton()
+    {
+        $this->reply('test button');
     }
 
     private function createFormattedMessage($requestData): string
