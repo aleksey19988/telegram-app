@@ -20,18 +20,15 @@ class Handler extends WebhookHandler
 
         $chat = TelegraphChat::find(1);
         $chat->html($message)->keyboard(Keyboard::make()->buttons([
-            Button::make('Delete')->action('delete')->param('id', '42'),
-            Button::make('Статистика')->url('https://6711-188-233-12-42.ngrok-free.app/test-button'),
+            Button::make('Статистика')->action('action')->param('action', 'stats'),
         ]))->withoutPreview()->send();
     }
 
-    public function delete(Request $request)
+    public function action(Request $request): void
     {
-        $id = $request->input('id');
-        file_put_contents('body.txt', "id: {$id}");
+        $actionName = $request->input('action');
         $chat = TelegraphChat::find(1);
-        $chat->html("")->send($id);
-//        $this->reply("delete button. id: {$id}");
+        $chat->html("Название события: {$actionName}")->send();
     }
 
     public function testButton()

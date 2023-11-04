@@ -15,5 +15,5 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('send-message', [Handler::class, 'sendMessage'])->name('send-message');
-Route::post('delete', [Handler::class, 'delete'])->name('delete');
+Route::post('action', [Handler::class, 'action'])->name('action');
 Route::get('test-button', [Handler::class, 'testButton'])->name('test-button');
