@@ -21,7 +21,20 @@ class Handler extends WebhookHandler
         $message = $this->createFormattedMessage(json_decode($data, true));
 
         $chat = TelegraphChat::find(1);
-        $chat->html($message)->withoutPreview()->send();
+        $chat->html($message)->keyboard(Keyboard::make()->buttons([
+            Button::make('Delete')->action('delete')->param('id', '42'),
+            Button::make('Статистика')->url('https://6711-188-233-12-42.ngrok-free.app/test-button'),
+        ]))->withoutPreview()->send();
+    }
+
+    public function delete($id)
+    {
+        $this->reply("delete button. id: {$id}");
+    }
+
+    public function testButton()
+    {
+        $this->reply('test button');
     }
 
     private function createFormattedMessage($requestData): string

@@ -14,3 +14,5 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('send-message', [\App\Telegraph\Handler::class, 'sendMessage']);
+Route::post('delete', [\App\Telegraph\Handler::class, 'delete']);
+Route::get('test-button', [\App\Telegraph\Handler::class, 'testButton']);
