@@ -24,7 +24,7 @@ class Handler extends WebhookHandler
         $logController = new LogController();
         $isLoggedSuccess = $logController->saveCommit(json_decode($dataAsJson, true));
 
-        if ($isLoggedSuccess) {
+        if (!$isLoggedSuccess) {
             $message = $this->addLogAttentionToMessage($message);
         }
 
@@ -96,7 +96,7 @@ class Handler extends WebhookHandler
             $message[] = "➕ Созданные файлы:\n{$addedFilesList}";
         }
 
-        if ($commitCollection->get('added')) {
+        if ($commitCollection->get('removed')) {
             $removedFilesList = implode("\n", $commitCollection->get('removed'));
             $message[] = "➖ Удалённые файлы:\n{$removedFilesList}";
         }
