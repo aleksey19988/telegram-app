@@ -72,14 +72,36 @@ class Handler extends WebhookHandler
 
     public function reset(): void
     {
-        TelegraphChat::find(1)->html('Отмена, понял')->send();
+        $this->chat->html('Отмена, понял')->send();
     }
 
-    public function statsByPeriod(Request $request): void
+    public function statsByPeriod(): void
     {
-        $from = $request->from;
-        $to = $request->to;
-        TelegraphChat::find(1)->html('Выбран период')->send();
+        $this->chat->html("Выбран период с {$this->data->get('from')} по {$this->data->get('to')}")->send();
+
+        $from = Carbon::createFromFormat('Y-m-d', $this->data->get('from'))->startOfDay();
+        $to = Carbon::createFromFormat('Y-m-d', $this->data->get('to'))->endOfDay();
+
+        $logController = new LogController();
+        $messageData = $logController->getInfoByPeriod($from, $to);
+
+        $dateTime = Carbon::now()->locale('ru');
+
+        $this->chat->html($messageData)->keyboard(Keyboard::make()->buttons([
+            Button::make(
+                'За сегодня (' . $dateTime->isoFormat('D MMMM, dddd') . ')')
+                ->action('statsByPeriod')->param('from', $dateTime->toDateString())
+                ->param('to', $dateTime->toDateString()),
+            Button::make(
+                'За неделю (С ' . Carbon::now()->locale('ru')->subDays(7)->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
+                ->action('statsByPeriod')
+                ->param('from', Carbon::now()->locale('ru')->subDays(7)->toDateString())->param('to', $dateTime->toDateString()),
+            Button::make(
+                'За месяц (С ' . Carbon::now()->locale('ru')->subMonths()->isoFormat('D MMMM') . ' по ' . $dateTime->isoFormat('D MMMM') . ')')
+                ->action('statsByPeriod')
+                ->param('from', Carbon::now()->locale('ru')->subMonths()->toDateString())->param('to', $dateTime->toDateString()),
+            Button::make('Отмена')->action('reset'),
+        ]))->send();
     }
 
     private function createFormattedCommitMessage($data): string

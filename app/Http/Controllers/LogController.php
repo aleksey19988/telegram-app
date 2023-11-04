@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Log;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class LogController extends Controller
@@ -71,5 +72,49 @@ class LogController extends Controller
         return $model->save();
     }
 
+    public function getInfoByPeriod(Carbon $from, Carbon $to): string
+    {
+        $result = [];
+        $rows = Log::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->get();
+        $commitsCount = $rows->count();
 
+        $result[] = "📋 Всего коммитов: $commitsCount";
+
+        if ($commitsCount) {
+            $neededDataForGroup = collect();
+            foreach($rows as $row) {
+                ['repository' => $repository, 'commit' => $commit] = $row;
+                $neededDataForGroup->add([
+                    'repository' => json_decode($repository, true),
+                    'commit' => json_decode($commit, true),
+                ]);
+            }
+
+            $groupedInfoByCommitOwner = $this->getMessageTextByGroupedData($neededDataForGroup->countBy('commit.author.name'));
+            $groupedInfoByProjectName = $this->getMessageTextByGroupedData($neededDataForGroup->countBy('repository.name'));
+
+            $result[] = "😼 Количество коммитов по сотрудникам:\n$groupedInfoByCommitOwner";
+            $result[] = "🗄 Количество коммитов по проектам:\n$groupedInfoByProjectName";
+        }
+
+        return implode("\n\n", $result);
+    }
+
+    public function commits()
+    {
+
+    }
+
+    private function getMessageTextByGroupedData($groupedData): string
+    {
+        $result = [];
+
+        foreach($groupedData as $key => $value) {
+            $result[] = "$key: $value";
+        }
+
+        return implode("\n", $result);
+    }
 }
