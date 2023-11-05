@@ -29,7 +29,11 @@ return [
      *
      * For reference, see https://core.telegram.org/bots/api#using-a-local-bot-api-server
      */
+<<<<<<< Updated upstream
      'custom_webhook_domain' => 'https://dev-13.site',
+=======
+    'custom_webhook_domain' => 'https://dev-13.site',
+>>>>>>> Stashed changes
 
     /*
      * If enabled, Telegraph dumps received
